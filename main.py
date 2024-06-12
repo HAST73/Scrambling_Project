@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+from bitarray import bitarray
 import time
 
 ###################################################################################################
@@ -69,36 +70,99 @@ def xor_descramble(scrambled_data, key):
 
 ###################################################################################################
 
-def mul_scrambler(data, scramble_key):
-
-    scrambled_data_mul = []
+def mul_scrambler_w1(data, scramble_key):
+    key = scramble_key[:]
+    scrambled_data = bytearray()
     for i in range(len(data)):
         byteX = data[i]
-        byte_from_key = scramble_key[18] ^ scramble_key[23]
+        byte_from_key = key[18] ^ key[23]
         scrambled_byte = byteX ^ byte_from_key
-        j = len(scramble_key)-1
+        j = len(key)-1
         while j >= 0:
-            scramble_key[j] = scramble_key[j-1]
+            key[j] = key[j-1]
             j -= 1
-        scramble_key[0] = scrambled_byte
-        scrambled_data_mul.append(scrambled_byte)
-    return scrambled_data_mul
+        key[0] = scrambled_byte
+        scrambled_data.append(scrambled_byte)
+    return scrambled_data
+
+def mul_descrambler_w1(data, descramble_key):
+    key = descramble_key[:]
+    descrambled_data = bytearray()
+    for i in range(len(data)):
+        byteX = data[i]
+        byte_from_key = key[18] ^ key[23]
+        descrambled_byte = byteX ^ byte_from_key
+        j = len(key) - 1
+        while j >= 0:
+            key[j] = key[j - 1]
+            j -= 1
+        key[0] = byteX
+        descrambled_data.append(descrambled_byte)
+    return descrambled_data
 
 ###################################################################################################
 
-def mul_descrambler(data, descramble_key):
-    descrambled_data_mul = []
+def mul_scrambler_w2(data, scramble_key):
+    key = scramble_key[:]
+    scrambled_data = bytearray()
     for i in range(len(data)):
         byteX = data[i]
-        byte_from_key = descramble_key[18] ^ descramble_key[23]
-        descrambled_byte = byteX ^ byte_from_key
-        j = len(descramble_key) - 1
+        byte_from_key = key[4] ^ key[15]
+        scrambled_byte = byteX ^ byte_from_key
+        j = len(key)-1
         while j >= 0:
-            descramble_key[j] = descramble_key[j - 1]
+            key[j] = key[j-1]
             j -= 1
-        descramble_key[0] = byteX
-        descrambled_data_mul.append(descrambled_byte)
-    return descrambled_data_mul
+        key[0] = scrambled_byte
+        scrambled_data.append(scrambled_byte)
+    return scrambled_data
+
+def mul_descrambler_w2(data, descramble_key):
+    key = descramble_key[:]
+    descrambled_data = bytearray()
+    for i in range(len(data)):
+        byteX = data[i]
+        byte_from_key = key[4] ^ key[15]
+        descrambled_byte = byteX ^ byte_from_key
+        j = len(key) - 1
+        while j >= 0:
+            key[j] = key[j - 1]
+            j -= 1
+        key[0] = byteX
+        descrambled_data.append(descrambled_byte)
+    return descrambled_data
+
+###################################################################################################
+
+def mul_scrambler_w3(data, scramble_key):
+    key = scramble_key[:]
+    scrambled_data = bytearray()
+    for i in range(len(data)):
+        byteX = data[i]
+        byte_from_key = key[4] ^ key[12] ^ key[17]
+        scrambled_byte = byteX ^ byte_from_key
+        j = len(key)-1
+        while j >= 0:
+            key[j] = key[j-1]
+            j -= 1
+        key[0] = scrambled_byte
+        scrambled_data.append(scrambled_byte)
+    return scrambled_data
+
+def mul_descrambler_w3(data, descramble_key):
+    key = descramble_key[:]
+    descrambled_data = bytearray()
+    for i in range(len(data)):
+        byteX = data[i]
+        byte_from_key = key[4] ^ key[12] ^ key[17]
+        descrambled_byte = byteX ^ byte_from_key
+        j = len(key) - 1
+        while j >= 0:
+            key[j] = key[j - 1]
+            j -= 1
+        key[0] = byteX
+        descrambled_data.append(descrambled_byte)
+    return descrambled_data
 
 ###################################################################################################
 
@@ -155,9 +219,9 @@ def brute_force_attack(encrypted_data_to_crack, some_signal):
     start_time = time.time()
     key_length = len(encrypted_data_to_crack)  # Długość klucza równa długości szyfrogramu
     iterations = binary_iteration(key_length)  # Generowanie wszystkich możliwych kombinacji klucza
-    new_key = []
 
     for guess in iterations:
+        new_key = []
 
         # Sprawdzanie, czy szyfrogram zgadza się z danymi oryginalnymi
         for i in range(len(guess)):
@@ -169,12 +233,13 @@ def brute_force_attack(encrypted_data_to_crack, some_signal):
                 new_key.append(1)
             elif guess[i] == 0 and encrypted_data_to_crack[i] == 1:
                 new_key.append(1)
+
             if new_key == some_signal:
                 end_time = time.time()  # Czas zakończenia operacji łamania hasła
                 elapsed_time = end_time - start_time  # Czas trwania operacji
                 elapsed_time = round(elapsed_time, 2)
                 print("Czas trwania operacji łamania klucza:", elapsed_time, "sekundy")
-                return new_key
+                return guess
             if i == len(some_signal)-1:
                 new_key.clear()
 
@@ -253,23 +318,153 @@ def menu():
             else:
                 print("Najpierw scrambluj sygnał!")
 
-        elif choice == '6':
-            if signal:
-                key_length = int(input("Podaj długość klucza: "))
-                key = [random.choice([0, 1]) for _ in range(key_length)]
-                scrambled_signal_mul = mul_scrambler(signal, key)
 
-                print(f"Zaszyfrowany sygnał: {scrambled_signal_mul}")
+        elif choice == '6':
+
+            if signal:
+
+                '''
+
+                key_length = int(input("Podaj długość klucza: "))
+
+                #key = [random.choice([0, 1]) for _ in range(key_length)]
+
+                key = bitarray(key_length)
+
+                for i in range(key_length):
+
+                    key[i] = random.choice([0, 1])
+
+                #1print(key)
+
+                '''
+
+                print("Wybierz wersję scramblera multiplikatywnego: ")
+
+                print("1. W1 -- 1 + z^18 + z^23")
+
+                print("2. W2 -- 1 + z^39 + z^58")
+
+                print("3. W3 -- 1 + z^18 + z^23 + z^39 + z^58")
+
+                scrambler_choice = 0
+
+                '''
+
+                while scrambler_choice < 1 or scrambler_choice > 3:
+
+                    scrambler_choice = int(input())
+
+
+                    if scrambler_choice == 1:
+
+                        scrambled_signal_mul = mul_scrambler_w1(signal, key)
+
+                    elif scrambler_choice == 2:
+
+                        scrambled_signal_mul = mul_scrambler_w2(signal, key)
+
+                    elif scrambler_choice == 3:
+
+                        scrambled_signal_mul = mul_scrambler_w3(signal, key)
+
+                    else:
+
+                        print("Nieprawidłowy wybór.")
+
+                '''
+
+                while scrambler_choice < 1 or scrambler_choice > 3:
+
+                    scrambler_choice = int(input())
+
+                    if scrambler_choice < 1 or scrambler_choice > 3:
+                        print("Nieprawidłowy wybór.")
+
+                min_key_length = [24, 59, 59]
+
+                print(
+                    f"Podaj długość klucza. Klucz musi mieć długość co najmniej {min_key_length[scrambler_choice - 1]} bitów: ")
+
+                key_length = 0
+
+                while key_length < min_key_length[scrambler_choice - 1]:
+
+                    key_length = int(input())
+
+                    if key_length < min_key_length[scrambler_choice - 1]:
+                        print("Niepoprawny wybór")
+
+                key = bitarray(key_length)
+
+                for i in range(key_length):
+                    key[i] = random.choice([0, 1])
+
+                if scrambler_choice == 1:
+
+                    scrambled_signal_mul = mul_scrambler_w1(signal, key)
+
+                elif scrambler_choice == 2:
+
+                    scrambled_signal_mul = mul_scrambler_w2(signal, key)
+
+                elif scrambler_choice == 3:
+
+                    scrambled_signal_mul = mul_scrambler_w3(signal, key)
+
+                print(f"Zaszyfrowany sygnał:", ''.join(map(str, scrambled_signal_mul)))
+
             else:
+
                 print("Najpierw wygeneruj sygnał!")
 
 
+
         elif choice == '7':
+
             if scrambled_signal_mul:
-                descrambled_signal_mul = mul_descrambler(scrambled_signal_mul, key)
-                print(f"Odszyfrowany sygnał: {descrambled_signal_mul}")
+
+                print("Wybierz wersję scramblera multiplikatywnego: ")
+
+                print("1. W1 -- 1 + z^18 + z^23")
+
+                print("2. W2 -- 1 + z^39 + z^58")
+
+                print("3. W3 -- 1 + z^18 + z^23 + z^39 + z^58")
+
+                scrambler_choice = 0
+
+                # print(key)
+
+                # print(signal)
+
+                while scrambler_choice < 1 or scrambler_choice > 3:
+
+                    scrambler_choice = int(input())
+
+                    if scrambler_choice == 1:
+
+                        descrambled_signal_mul = mul_descrambler_w1(scrambled_signal_mul, key)
+
+                    elif scrambler_choice == 2:
+
+                        descrambled_signal_mul = mul_descrambler_w2(scrambled_signal_mul, key)
+
+                    elif scrambler_choice == 3:
+
+                        descrambled_signal_mul = mul_descrambler_w3(scrambled_signal_mul, key)
+
+                    else:
+
+                        print("Nieprawidłowy wybór.")
+
+                # print(signal)
+
+                print(f"Odszyfrowany sygnał:", ''.join(map(str, descrambled_signal_mul)))
+
 
             else:
+
                 print("Najpierw scrambluj sygnał!")
 
         elif choice == '8':
@@ -297,13 +492,15 @@ def menu():
             break
 
         elif choice == '11':
-            choice5 = input(" 1. scrambler_data_xor: ")
+            choice5 = input(" 1. scrambler_data_xor, 2. ")
+
             choice5 = int(choice5)  # Konwersja wyboru na integer
             if choice5 == 1:
                 print(f"Klucz: {key}")
                 print(f"Zaszyfrowany sygnał: {scrambled_signal}")
                 print("Odszyfrowany klucz",brute_force_attack(scrambled_signal, signal))
             break
+            # if choice5 == 2:
 
         else:
             print("Nieprawidłowy wybór. Spróbuj ponownie.")
